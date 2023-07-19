@@ -1,7 +1,7 @@
 import os
 import telebot
 from telebot import types
-import yt_dlp
+import download_functions
 import os
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
@@ -39,29 +39,32 @@ def start_message(message):
     )
 
 
-@bot.message_handler(func=lambda message: message.text == "🎥 Download Video")
+@bot.message_handler(func=lambda message: message.text == "🎥 Download Video" or "🎵 Download Audio")
 def handle_download_button(message):
-    bot.send_message(message.chat.id, "🔗 Input an URL to download video:")
+    if message.text == "🎥 Download Video":
+        bot.send_message(message.chat.id, "🔗 Input an URL to download video:")
 
-    bot.register_next_step_handler(message, handle_video_link)
+        bot.register_next_step_handler(message, handle_video_link)
+    elif message.text == "🎵 Download Audio":
+        bot.send_message(message.chat.id, "🔗 Input an URL to download audio:")
+
+        bot.register_next_step_handler(message, handle_audio_link)
 
 
 def handle_video_link(message):
     url = message.text
     try:
-        downloader_options = {
-            "format": "best",
-            "outtmpl": os.path.join("Downloads", "%(title)s.%(ext)s"),
-        }
-        downloader = yt_dlp.YoutubeDL(downloader_options)
-        info = downloader.extract_info(url, download=False)
-        downloader.download([url])
-
-        video_file_path = os.path.join("Downloads", info["title"] + ".mp4")
-        video_file = open(video_file_path, "rb")
-        bot.send_video(message.chat.id, video_file)
+        bot.send_video(message.chat.id, download_functions.download_video(url))
     except Exception as error:
         bot.send_message(message.chat.id, f"❗ Error downloading video: {error}")
+
+
+def handle_audio_link(message):
+    url = message.text
+    try:
+        bot.send_audio(message.chat.id, download_functions.download_audio(url))
+    except Exception as error:
+        bot.send_message(message.chat.id, f"❗ Error downloading audio: {error}")
 
 
 @bot.message_handler(func=lambda msg: True)
